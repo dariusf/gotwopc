@@ -1,4 +1,4 @@
-package main
+package tpc
 
 import (
 	"errors"
@@ -179,6 +179,7 @@ func (m *Master) mutate(operation Operation, key string, masterDeath MasterDeath
 
 	log.Println("Master."+action+" asking replicas to commit tx:", txId, "key:", key)
 	m.sendAndWaitForCommit(action, txId, replicaDeaths)
+	log.Println("commit ok")
 
 	return
 }

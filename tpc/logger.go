@@ -1,4 +1,4 @@
-package main
+package tpc
 
 import (
 	"encoding/csv"
@@ -28,8 +28,8 @@ type logger struct {
 }
 
 func newLogger(logFilePath string) *logger {
-	err := os.MkdirAll(path.Dir(logFilePath), 0)
-	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE, 0)
+	err := os.MkdirAll(path.Dir(logFilePath), 0777)
+	file, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 	if err != nil {
 		log.Fatalln("newLogger:", err)
 	}

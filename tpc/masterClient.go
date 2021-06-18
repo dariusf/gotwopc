@@ -1,5 +1,4 @@
-
-package main
+package tpc
 
 import (
 	"log"
@@ -46,14 +45,14 @@ func (c *MasterClient) Get(key string) (Value *string, err error) {
 	}
 
 	var reply GetResult
-	err = c.call("Master.Get", &GetArgs{ key }, &reply)
+	err = c.call("Master.Get", &GetArgs{key}, &reply)
 	if err != nil {
 		log.Println("MasterClient.Get:", err)
 		return
 	}
-	
+
 	Value = &reply.Value
-	
+
 	return
 }
 
@@ -63,14 +62,14 @@ func (c *MasterClient) GetTest(key string, replicanum int) (Value *string, err e
 	}
 
 	var reply GetResult
-	err = c.call("Master.GetTest", &GetTestArgs{ key, replicanum }, &reply)
+	err = c.call("Master.GetTest", &GetTestArgs{key, replicanum}, &reply)
 	if err != nil {
 		log.Println("MasterClient.GetTest:", err)
 		return
 	}
-	
+
 	Value = &reply.Value
-	
+
 	return
 }
 
@@ -80,12 +79,12 @@ func (c *MasterClient) Del(key string) (err error) {
 	}
 
 	var reply int
-	err = c.call("Master.Del", &DelArgs{ key }, &reply)
+	err = c.call("Master.Del", &DelArgs{key}, &reply)
 	if err != nil {
 		log.Println("MasterClient.Del:", err)
 		return
 	}
-	
+
 	return
 }
 
@@ -95,12 +94,12 @@ func (c *MasterClient) DelTest(key string, masterdeath MasterDeath, replicadeath
 	}
 
 	var reply int
-	err = c.call("Master.DelTest", &DelTestArgs{ key, masterdeath, replicadeaths }, &reply)
+	err = c.call("Master.DelTest", &DelTestArgs{key, masterdeath, replicadeaths}, &reply)
 	if err != nil {
 		log.Println("MasterClient.DelTest:", err)
 		return
 	}
-	
+
 	return
 }
 
@@ -110,12 +109,12 @@ func (c *MasterClient) Put(key string, value string) (err error) {
 	}
 
 	var reply int
-	err = c.call("Master.Put", &PutArgs{ key, value }, &reply)
+	err = c.call("Master.Put", &PutArgs{key, value}, &reply)
 	if err != nil {
 		log.Println("MasterClient.Put:", err)
 		return
 	}
-	
+
 	return
 }
 
@@ -125,12 +124,12 @@ func (c *MasterClient) PutTest(key string, value string, masterdeath MasterDeath
 	}
 
 	var reply int
-	err = c.call("Master.PutTest", &PutTestArgs{ key, value, masterdeath, replicadeaths }, &reply)
+	err = c.call("Master.PutTest", &PutTestArgs{key, value, masterdeath, replicadeaths}, &reply)
 	if err != nil {
 		log.Println("MasterClient.PutTest:", err)
 		return
 	}
-	
+
 	return
 }
 
@@ -140,14 +139,14 @@ func (c *MasterClient) Ping(key string) (Value *string, err error) {
 	}
 
 	var reply GetResult
-	err = c.call("Master.Ping", &PingArgs{ key }, &reply)
+	err = c.call("Master.Ping", &PingArgs{key}, &reply)
 	if err != nil {
 		log.Println("MasterClient.Ping:", err)
 		return
 	}
-	
+
 	Value = &reply.Value
-	
+
 	return
 }
 
@@ -157,13 +156,13 @@ func (c *MasterClient) Status(txid string) (State *TxState, err error) {
 	}
 
 	var reply StatusResult
-	err = c.call("Master.Status", &StatusArgs{ txid }, &reply)
+	err = c.call("Master.Status", &StatusArgs{txid}, &reply)
 	if err != nil {
 		log.Println("MasterClient.Status:", err)
 		return
 	}
-	
+
 	State = &reply.State
-	
+
 	return
 }

@@ -1,5 +1,5 @@
 // +build !goci
-package main
+package tpc
 
 import (
 	"fmt"

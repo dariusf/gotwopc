@@ -1,4 +1,4 @@
-package main
+package tpc
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func main() {
+func Start() {
 	isMaster := flag.BoolP("master", "m", false, "start the master process")
 	replicaCount := flag.IntP("replicaCount", "n", 0, "replica count for master")
 	isReplica := flag.BoolP("replica", "r", false, "start a replica process")

@@ -1,4 +1,4 @@
-package main
+package tpc
 
 import (
 	"io/ioutil"
@@ -12,7 +12,7 @@ type keyValueStore struct {
 }
 
 func newKeyValueStore(dbPath string) (store *keyValueStore) {
-	err := os.MkdirAll(dbPath, 0)
+	err := os.MkdirAll(dbPath, 0777)
 	if err != nil {
 		log.Fatalln("newKeyValueStore:", err)
 	}
