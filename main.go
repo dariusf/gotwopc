@@ -20,7 +20,7 @@ func main() {
 
 	go func() {
 		_ = <-sigs
-		fmt.Printf("Total time taken: %v\n", time.Since(start))
+		fmt.Printf("Total time taken: %d\n", time.Since(start).Nanoseconds())
 		quitting <- true
 		_ = <-quitting
 		os.Exit(0)
@@ -32,7 +32,7 @@ func main() {
 		for i := 0; i < 1; i++ {
 			client.Put("a"+strconv.Itoa(i), "b"+strconv.Itoa(i))
 		}
-		fmt.Printf("Total time taken: %v\n", time.Since(start))
+		fmt.Printf("Total time taken: %d\n", time.Since(start).Nanoseconds())
 	} else {
 		tpc.Start(quitting)
 	}
