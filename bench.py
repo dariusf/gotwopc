@@ -22,11 +22,11 @@ def start_replica(f, n):
     stderr=subprocess.STDOUT,
     cwd=os.getcwd())
 
-def start_client(f):
+def start_client(reqs, f):
   return subprocess.Popen(['./main'],
     stdout=f,
     stderr=subprocess.STDOUT,
-    env={'CLIENT': '1', 'REQUESTS': '2'},
+    env={'CLIENT': '1', 'REQUESTS': str(reqs)},
     cwd=os.getcwd())
 
 def clean():
@@ -38,7 +38,7 @@ def clean():
 def build():
   subprocess.check_call(['go', 'build', 'main.go'])
 
-def run_experiment(replica_count):
+def run_experiment(reqs, replica_count):
   replica_files = []
   replica_processes = []
   with open('out/master.log', 'w') as master_f, open('out/client.log', 'w') as client_f:
@@ -50,7 +50,7 @@ def run_experiment(replica_count):
 
     print('waiting for processes to start')
     time.sleep(3)
-    start_client(client_f).wait()
+    start_client(reqs, client_f).wait()
     print('client terminated')
 
     for f in replica_files:
@@ -85,31 +85,33 @@ def collect_data(replica_count):
   print('monitor time', monitor_time)
   return monitor_time, client_time
 
-def run_it_all(runs, replica_count): 
+def run_it_all(reqs, runs, replica_count):
   monitor_time = 0
   client_time = 0
   for i in range(runs):
-    print(f'--- run {i} ---')
+    print(f'---- run {i}')
     clean()
-    run_experiment(replica_count)
+    run_experiment(reqs, replica_count)
     m, c = collect_data(replica_count)
     monitor_time += m
     client_time += c
 
   monitor_time /= runs
   client_time /= runs
-  print(f'---')
-  overhead = monitor_time / client_time * 100
-  print(f'avg overhead: {overhead}%')
+  print(f'------')
+  overhead = monitor_time / client_time
+  print(f'avg overhead for {replica_count} replicas: {overhead}')
 
 
 if __name__ == "__main__":
   build()
 
-  # runs = 5
-  runs = 1
-  # replica_counts = {2, 4, 6}
-  replica_counts = {2}
+  runs = 5
+  # runs = 1
+  replica_counts = {2, 4, 6}
+  # replica_counts = {2}
+  # reqs = 5
+  reqs = 100
   for c in replica_counts:
     print(f'------ {c} replicas')
-    run_it_all(runs, c)
+    run_it_all(reqs, runs, c)
