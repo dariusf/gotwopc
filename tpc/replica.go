@@ -3,6 +3,7 @@ package tpc
 import (
 	"errors"
 	"fmt"
+	"github.com/ianobermiller/gotwopc/rvp"
 	"log"
 	"net/http"
 	"net/rpc"
@@ -60,6 +61,7 @@ type Replica struct {
 	lockedKeys     map[string]bool
 	log            *logger
 	didSuicide     bool
+	monitor        *rvp.Monitor
 }
 
 func NewReplica(num int) *Replica {
@@ -71,7 +73,9 @@ func NewReplica(num int) *Replica {
 		make(map[string]*Tx),
 		make(map[string]bool),
 		l,
-		false}
+		false,
+		rvp.NewMonitor(map[string]map[string]bool{"C": {"c": true}}),
+	}
 }
 
 func (r *Replica) getTempStoreKey(txId string, key string) string {
@@ -92,9 +96,17 @@ func (r *Replica) TryDel(args *TxDelArgs, reply *ReplicaActionResult) (err error
 	return r.tryMutate(args.Key, args.TxId, args.Die, DelOp, nil, reply)
 }
 
+func (r *Replica) abstract() rvp.Global {
+	return rvp.Global{}
+}
+
 func (r *Replica) tryMutate(key string, txId string, die ReplicaDeath, op Operation, f func() error, reply *ReplicaActionResult) (err error) {
 	r.dieIf(die, ReplicaDieBeforeProcessingMutateRequest)
 	reply.Success = false
+
+	if err := r.monitor.Step(r.abstract(), rvp.PReceivePrepare1, "c"); err != nil {
+		log.Printf("%v\n", err)
+	}
 
 	r.txs[txId] = &Tx{txId, key, op, Started}
 
@@ -103,6 +115,9 @@ func (r *Replica) tryMutate(key string, txId string, die ReplicaDeath, op Operat
 		log.Println("Received", op.String(), "for locked key:", key, "in tx:", txId, " Aborting")
 		r.txs[txId].state = Aborted
 		r.log.writeState(txId, Aborted)
+		if err := r.monitor.Step(r.abstract(), rvp.PSendAbort3, "c"); err != nil {
+			log.Printf("%v\n", err)
+		}
 		return nil
 	}
 
@@ -115,6 +130,9 @@ func (r *Replica) tryMutate(key string, txId string, die ReplicaDeath, op Operat
 			r.txs[txId].state = Aborted
 			r.log.writeState(txId, Aborted)
 			delete(r.lockedKeys, key)
+			if err := r.monitor.Step(r.abstract(), rvp.PSendAbort3, "c"); err != nil {
+				log.Printf("%v\n", err)
+			}
 			return
 		}
 	}
@@ -124,6 +142,9 @@ func (r *Replica) tryMutate(key string, txId string, die ReplicaDeath, op Operat
 	reply.Success = true
 
 	r.dieIf(die, ReplicaDieAfterLoggingPrepared)
+	if err := r.monitor.Step(r.abstract(), rvp.PSendPrepared2, "c"); err != nil {
+		log.Printf("%v\n", err)
+	}
 
 	return
 }
@@ -131,6 +152,9 @@ func (r *Replica) tryMutate(key string, txId string, die ReplicaDeath, op Operat
 func (r *Replica) Commit(args *CommitArgs, reply *ReplicaActionResult) (err error) {
 	r.dieIf(args.Die, ReplicaDieBeforeProcessingCommit)
 
+	if err := r.monitor.Step(r.abstract(), rvp.PReceiveCommit4, "c"); err != nil {
+		log.Printf("%v\n", err)
+	}
 	reply.Success = false
 
 	txId := args.TxId
@@ -157,6 +181,9 @@ func (r *Replica) Commit(args *CommitArgs, reply *ReplicaActionResult) (err erro
 
 	if err == nil {
 		reply.Success = true
+	}
+	if err := r.monitor.Step(r.abstract(), rvp.PSendCommitAck5, "c"); err != nil {
+		log.Printf("%v\n", err)
 	}
 	return
 }
@@ -200,6 +227,9 @@ func (r *Replica) commitTx(txId string, op Operation, key string, die ReplicaDea
 func (r *Replica) Abort(args *AbortArgs, reply *ReplicaActionResult) (err error) {
 	reply.Success = false
 
+	if err := r.monitor.Step(r.abstract(), rvp.PReceiveAbort6, "c"); err != nil {
+		log.Printf("%v\n", err)
+	}
 	txId := args.TxId
 
 	tx, hasTx := r.txs[txId]
@@ -221,6 +251,9 @@ func (r *Replica) Abort(args *AbortArgs, reply *ReplicaActionResult) (err error)
 		log.Println("Received abort for transaction in state ", tx.state.String())
 	}
 
+	if err := r.monitor.Step(r.abstract(), rvp.PSendAbortAck7, "c"); err != nil {
+		log.Printf("%v\n", err)
+	}
 	reply.Success = true
 	return nil
 }
