@@ -296,11 +296,28 @@ type Monitor struct {
 func NewMonitor(vars map[string]map[string]bool) *Monitor {
 	return &Monitor{
 		// previous is the empty Global
-		PC:          map[string]int{},
+		PC:          map[string]int{}, // not the smae as a nil map
 		vars:        vars,
-		Log:         Log{},
 		ltlMonitor1: NewLTLMonitor1(vars),
+		// Everything else uses mzero
 	}
+}
+
+func (m *Monitor) Reset() {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	defer m.trackTime(time.Now())
+
+	m.previous = Global{}
+	m.PC = map[string]int{}
+	// vars ok
+	m.ltlMonitor1 = NewLTLMonitor1(m.vars)
+	m.Log = Log{}
+
+	// This is deliberately not reset, to track the total time the monitor has been used
+	// m.ExecutionTimeNs = 0
+
+	// lock ok
 }
 
 func (m *Monitor) Step(g Global, act Action, params ...string) error {
