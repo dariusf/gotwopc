@@ -191,6 +191,7 @@ func (r *Replica) Commit(args *CommitArgs, reply *ReplicaActionResult) (err erro
 	if err := r.monitor.Step(r.abstract(), rvp.PSendCommitAck5, "c"); err != nil {
 		log.Printf("%v\n", err)
 	}
+	r.monitor.Reset()
 	return
 }
 
@@ -260,6 +261,7 @@ func (r *Replica) Abort(args *AbortArgs, reply *ReplicaActionResult) (err error)
 	if err := r.monitor.Step(r.abstract(), rvp.PSendAbortAck7, "c"); err != nil {
 		log.Printf("%v\n", err)
 	}
+	r.monitor.Reset()
 	reply.Success = true
 	return nil
 }
