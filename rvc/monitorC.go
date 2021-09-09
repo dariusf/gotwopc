@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 )
 
 type Global struct {
@@ -284,10 +285,11 @@ type Monitor struct {
 	previous Global
 	PC       map[string]int
 	//vars     map[string][]string
-	vars        map[string]map[string]bool
-	ltlMonitor1 *LTLMonitor1
-	Log         Log
-	lock        sync.Mutex
+	vars            map[string]map[string]bool
+	ltlMonitor1     *LTLMonitor1
+	Log             Log
+	ExecutionTimeNs int64
+	lock            sync.Mutex
 }
 
 //func NewMonitor(vars map[string][]string) *Monitor {
@@ -304,6 +306,7 @@ func NewMonitor(vars map[string]map[string]bool) *Monitor {
 func (m *Monitor) Step(g Global, act Action, params ...string) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+	defer m.trackTime(time.Now())
 
 	if err := m.precondition(&g, act, params...); err != nil {
 		return err
@@ -327,6 +330,7 @@ func (m *Monitor) Step(g Global, act Action, params ...string) error {
 func (m *Monitor) StepA(act Action, params ...string) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+	defer m.trackTime(time.Now())
 
 	if err := m.precondition(nil, act, params...); err != nil {
 		return err
@@ -342,6 +346,7 @@ func (m *Monitor) StepA(act Action, params ...string) error {
 func (m *Monitor) StepS(g Global) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+	defer m.trackTime(time.Now())
 
 	m.previous = g
 
@@ -361,4 +366,10 @@ func (m *Monitor) PrintLog() {
 	for _, e := range m.Log {
 		fmt.Printf("%s %v\n", e.action, e.params)
 	}
+	fmt.Printf("Time taken: %v\n", time.Duration(m.ExecutionTimeNs))
+}
+
+func (m *Monitor) trackTime(start time.Time) {
+	elapsed := time.Since(start)
+	m.ExecutionTimeNs += elapsed.Nanoseconds()
 }
