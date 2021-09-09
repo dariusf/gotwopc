@@ -64,8 +64,14 @@ type Replica struct {
 	monitor        *rvp.Monitor
 }
 
-func NewReplica(num int) *Replica {
+func NewReplica(num int, quitting chan bool) *Replica {
 	l := newLogger(fmt.Sprintf("logs/replica%v.txt", num))
+	monitor := rvp.NewMonitor(map[string]map[string]bool{"C": {"c": true}})
+	go func() {
+		_ = <-quitting
+		monitor.PrintLog()
+		quitting <- true
+	}()
 	return &Replica{
 		num,
 		newKeyValueStore(fmt.Sprintf("data/replica%v/committed", num)),
@@ -74,7 +80,7 @@ func NewReplica(num int) *Replica {
 		make(map[string]bool),
 		l,
 		false,
-		rvp.NewMonitor(map[string]map[string]bool{"C": {"c": true}}),
+		monitor,
 	}
 }
 
@@ -376,8 +382,8 @@ func (r *Replica) getStatus(txId string) TxState {
 	return NoState
 }
 
-func runReplica(num int) {
-	replica := NewReplica(num)
+func runReplica(num int, quitting chan bool) {
+	replica := NewReplica(num, quitting)
 	err := replica.recover()
 	if err != nil {
 		log.Fatal("Error during recovery: ", err)

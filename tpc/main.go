@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func Start() {
+func Start(quitting chan bool) {
 	isMaster := flag.BoolP("master", "m", false, "start the master process")
 	replicaCount := flag.IntP("replicaCount", "n", 0, "replica count for master")
 	isReplica := flag.BoolP("replica", "r", false, "start a replica process")
@@ -20,10 +20,10 @@ func Start() {
 	switch {
 	case *isMaster:
 		log.SetPrefix("M  ")
-		runMaster(*replicaCount)
+		runMaster(*replicaCount, quitting)
 	case *isReplica:
 		log.SetPrefix(fmt.Sprint("R", strconv.Itoa(*replicaNumber), " "))
-		runReplica(*replicaNumber)
+		runReplica(*replicaNumber, quitting)
 	default:
 		flag.Usage()
 	}

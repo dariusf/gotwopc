@@ -77,7 +77,7 @@ type GetResult struct {
 	Value string
 }
 
-func NewMaster(replicaCount int) *Master {
+func NewMaster(replicaCount int, quitting chan bool) *Master {
 	l := newLogger("logs/master.txt")
 	replicas := make([]*ReplicaClient, replicaCount)
 	mParts := map[string]bool{}
@@ -86,6 +86,11 @@ func NewMaster(replicaCount int) *Master {
 		mParts[strconv.Itoa(i)] = true
 	}
 	monitor := rvc.NewMonitor(map[string]map[string]bool{"P": mParts})
+	go func() {
+		_ = <-quitting
+		monitor.PrintLog()
+		quitting <- true
+	}()
 	return &Master{replicaCount, replicas, l, make(map[string]TxState), false, monitor, []int{}, []int{}}
 }
 
@@ -212,7 +217,6 @@ func (m *Master) mutate(operation Operation, key string, masterDeath MasterDeath
 	log.Println("Master."+action+" asking replicas to commit tx:", txId, "key:", key)
 	m.sendAndWaitForCommit(action, txId, replicaDeaths)
 	log.Println("commit ok")
-	m.monitor.PrintLog()
 
 	return
 }
@@ -328,12 +332,12 @@ func (m *Master) dieIf(actual MasterDeath, expected MasterDeath) {
 	}
 }
 
-func runMaster(replicaCount int) {
+func runMaster(replicaCount int, quitting chan bool) {
 	if replicaCount <= 0 {
 		log.Fatalln("Replica count must be greater than 0.")
 	}
 
-	master := NewMaster(replicaCount)
+	master := NewMaster(replicaCount, quitting)
 	err := master.recover()
 	if err != nil {
 		log.Fatal("Error during recovery: ", err)

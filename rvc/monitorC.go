@@ -366,7 +366,7 @@ func (m *Monitor) PrintLog() {
 	for _, e := range m.Log {
 		fmt.Printf("%s %v\n", e.action, e.params)
 	}
-	fmt.Printf("Time taken: %v\n", time.Duration(m.ExecutionTimeNs))
+	fmt.Printf("Monitor time taken: %v\n", time.Duration(m.ExecutionTimeNs))
 }
 
 func (m *Monitor) trackTime(start time.Time) {
