@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"os"
-	"os/signal"
-	"runtime"
-	"runtime/pprof"
 	"strconv"
 	"sync"
 	"time"
@@ -332,33 +329,13 @@ func (m *Master) dieIf(actual MasterDeath, expected MasterDeath) {
 }
 
 func runMaster(replicaCount int) {
-
-	f, err := os.Create("profile.prof")
-	if err != nil {
-		log.Fatal("could not create CPU profile: ", err)
-	}
-	defer f.Close()
-	runtime.SetCPUProfileRate(100000)
-	if err := pprof.StartCPUProfile(f); err != nil {
-		log.Fatal("could not start CPU profile: ", err)
-	}
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		for range c {
-			pprof.StopCPUProfile()
-			os.Exit(0)
-		}
-	}()
-
-	//
-
 	if replicaCount <= 0 {
 		log.Fatalln("Replica count must be greater than 0.")
 	}
 
 	master := NewMaster(replicaCount)
-	if err := master.recover(); err != nil {
+	err := master.recover()
+	if err != nil {
 		log.Fatal("Error during recovery: ", err)
 	}
 
