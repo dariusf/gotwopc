@@ -26,7 +26,7 @@ def start_client(f):
   return subprocess.Popen(['./main'],
     stdout=f,
     stderr=subprocess.STDOUT,
-    env={'CLIENT': '1'},
+    env={'CLIENT': '1', 'REQUESTS': '2'},
     cwd=os.getcwd())
 
 def clean():
@@ -85,10 +85,7 @@ def collect_data(replica_count):
   print('monitor time', monitor_time)
   return monitor_time, client_time
 
-if __name__ == "__main__":
-  runs = 5
-  replica_count = 2
-  build()
+def run_it_all(runs, replica_count): 
   monitor_time = 0
   client_time = 0
   for i in range(runs):
@@ -103,4 +100,16 @@ if __name__ == "__main__":
   client_time /= runs
   print(f'---')
   overhead = monitor_time / client_time * 100
-  print(f'overhead: {overhead:.3f}%')
+  print(f'avg overhead: {overhead}%')
+
+
+if __name__ == "__main__":
+  build()
+
+  # runs = 5
+  runs = 1
+  # replica_counts = {2, 4, 6}
+  replica_counts = {2}
+  for c in replica_counts:
+    print(f'------ {c} replicas')
+    run_it_all(runs, c)

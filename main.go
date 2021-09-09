@@ -29,7 +29,10 @@ func main() {
 	if _, set := os.LookupEnv("CLIENT"); set {
 		client := tpc.NewMasterClient(tpc.MasterPort)
 
-		for i := 0; i < 1; i++ {
+		reqs, _ := os.LookupEnv("REQUESTS")
+		requests, _ := strconv.Atoi(reqs)
+
+		for i := 0; i < requests; i++ {
 			client.Put("a"+strconv.Itoa(i), "b"+strconv.Itoa(i))
 		}
 		fmt.Printf("Total time taken: %d\n", time.Since(start).Nanoseconds())
