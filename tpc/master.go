@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
-	"github.com/ianobermiller/gotwopc/rv"
+	"github.com/ianobermiller/gotwopc/rvc"
 )
 
 var (
@@ -28,7 +28,7 @@ type Master struct {
 	log          *logger
 	txs          map[string]TxState
 	didSuicide   bool
-	monitor      *rv.Monitor
+	monitor      *rvc.Monitor
 	committed    []int
 	aborted      []int
 }
@@ -88,7 +88,7 @@ func NewMaster(replicaCount int) *Master {
 		replicas[i] = NewReplicaClient(GetReplicaHost(i))
 		mParts[strconv.Itoa(i)] = true
 	}
-	monitor := rv.NewMonitor(map[string]map[string]bool{"P": mParts})
+	monitor := rvc.NewMonitor(map[string]map[string]bool{"P": mParts})
 	return &Master{replicaCount, replicas, l, make(map[string]TxState), false, monitor, []int{}, []int{}}
 }
 
@@ -151,7 +151,7 @@ func getReplicaDeath(replicaDeaths []ReplicaDeath, n int) ReplicaDeath {
 	return rd
 }
 
-func (m *Master) abstract(shouldAbort bool) rv.Global {
+func (m *Master) abstract(shouldAbort bool) rvc.Global {
 	c := map[string]bool{}
 	for _, v := range m.committed {
 		c[strconv.Itoa(v)] = true
@@ -160,7 +160,7 @@ func (m *Master) abstract(shouldAbort bool) rv.Global {
 	for _, v := range m.aborted {
 		a[strconv.Itoa(v)] = true
 	}
-	return rv.Global{HasAborted: shouldAbort, Committed: c, Aborted: a}
+	return rvc.Global{HasAborted: shouldAbort, Committed: c, Aborted: a}
 }
 
 func (m *Master) mutate(operation Operation, key string, masterDeath MasterDeath, replicaDeaths []ReplicaDeath, f func(r *ReplicaClient, txId string, i int, rd ReplicaDeath) (*bool, error)) (err error) {
@@ -176,19 +176,19 @@ func (m *Master) mutate(operation Operation, key string, masterDeath MasterDeath
 	m.forEachReplica(func(i int, r *ReplicaClient) {
 		pid := strconv.Itoa(i)
 		success, err := f(r, txId, i, getReplicaDeath(replicaDeaths, i))
-		if err := m.monitor.Step(m.abstract(false), rv.CSendPrepare8, pid); err != nil {
+		if err := m.monitor.Step(m.abstract(false), rvc.CSendPrepare8, pid); err != nil {
 			log.Printf("%v\n", err)
 		}
 		if err != nil {
 			log.Println("Master."+action+" r.Try"+action+":", err)
 		}
 		if success == nil || !*success {
-			if err := m.monitor.Step(m.abstract(false), rv.CReceiveAbort10, pid); err != nil {
+			if err := m.monitor.Step(m.abstract(false), rvc.CReceiveAbort10, pid); err != nil {
 				log.Printf("%v\n", err)
 			}
 			shouldAbort <- 1
 		} else {
-			if err := m.monitor.Step(m.abstract(false), rv.CReceivePrepared9, pid); err != nil {
+			if err := m.monitor.Step(m.abstract(false), rvc.CReceivePrepared9, pid); err != nil {
 				log.Printf("%v\n", err)
 			}
 		}
@@ -224,12 +224,12 @@ func (m *Master) sendAbort(action string, txId string) {
 	m.forEachReplica(func(i int, r *ReplicaClient) {
 		pid := strconv.Itoa(i)
 		_, err := r.Abort(txId)
-		if err := m.monitor.Step(m.abstract(true), rv.CSendAbort13, pid); err != nil {
+		if err := m.monitor.Step(m.abstract(true), rvc.CSendAbort13, pid); err != nil {
 			log.Printf("%v\n", err)
 		}
 		if err != nil {
 			m.aborted = append(m.aborted, i)
-			if err := m.monitor.Step(m.abstract(true), rv.CReceiveAbortAck14, pid); err != nil {
+			if err := m.monitor.Step(m.abstract(true), rvc.CReceiveAbortAck14, pid); err != nil {
 				log.Printf("%v\n", err)
 			}
 			log.Println("Master."+action+" r.Abort:", err)
@@ -242,12 +242,12 @@ func (m *Master) sendAndWaitForCommit(action string, txId string, replicaDeaths 
 		for {
 			pid := strconv.Itoa(i)
 			_, err := r.Commit(txId, getReplicaDeath(replicaDeaths, i))
-			if err := m.monitor.Step(m.abstract(false), rv.CSendCommit11, pid); err != nil {
+			if err := m.monitor.Step(m.abstract(false), rvc.CSendCommit11, pid); err != nil {
 				log.Printf("%v\n", err)
 			}
 			if err == nil {
 				m.committed = append(m.committed, i)
-				if err := m.monitor.Step(m.abstract(false), rv.CReceiveCommitAck12, pid); err != nil {
+				if err := m.monitor.Step(m.abstract(false), rvc.CReceiveCommitAck12, pid); err != nil {
 					log.Printf("%v\n", err)
 				}
 				break

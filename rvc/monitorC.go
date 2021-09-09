@@ -1,4 +1,4 @@
-package rv
+package rvc
 
 import (
 	"errors"
